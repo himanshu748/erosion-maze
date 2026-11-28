@@ -1,14 +1,14 @@
 # Submission checklist: Erosion Maze, Game of the Day Hackathon
 
-Deadline: **[OWNER INPUT NEEDED]** (unverified; other plans in this workspace say 8 Dec 2026, 6:00 PM PT). Category: **[OWNER INPUT NEEDED]** (Q5).
-Do **not** publish the app. Submission is the listing URL, a demo post and the README. The agent never runs `npm run launch` or `devvit publish` (Req 30.3).
+Deadline: **8 Dec 2026, 6:00 PM PST / 9 Dec 2026, 7:30 AM IST** per the [official rules](https://redditgameofday2026.devpost.com/rules). Category: **[OWNER INPUT NEEDED]** (Q5).
+Use a private Devvit upload. The submission requires the app listing, the test subreddit and a working demo post, plus a root README. The agent never runs `npm run launch` or `devvit publish` (Req 30.3).
 
 ## Before submitting
 
 - [x] Owner approved `PLAN.md` and the four requirement deviations (2026-11-19)
 - [x] CLI logged in as u/jhahimanshu653; template project created (tasks 1.1, 1.2)
 - [x] App name chosen and set in `devvit.json` and `package.json`: `erosion-maze`
-- [ ] `npm test` and `npm run build` pass from `erosion-maze/` (type check, CommonJS server check and bundle budgets included)
+- [x] Local verification on 26 Nov 2026: `npm test` (171 passed), `npm run lint` and `npm run build` passed. The build checked types, CommonJS output and bundle budgets.
 - [ ] Owner approved every shipped string: `src/shared/strings.ts`, Hook templates, textFallback, Results_Thread text, Share_Comment templates (Q10, Req 26.4, task 20)
 - [ ] Private upload with `npm run deploy` and a full playtest on the private playtest subreddit (task 19):
   - [ ] Daily_Post created by the scheduler (or "Post today's maze now"), correct "Day N · Hook" title and Launch_Screen
@@ -26,8 +26,9 @@ Do **not** publish the app. Submission is the listing URL, a demo post and the R
   - [ ] First Move accepted within 3 seconds of tapping Play (Req 18.4); record the measured time
   - [ ] Journeys receipts recorded as observed (expect `JOURNEY_RECEIPT_DENIED_PLAYTEST` or `JOURNEY_RECEIPT_DENIED_NOT_ALLOWLISTED`); `em:funnel:<day>` counters increase
   - [ ] No error-level console output during a normal session (Req 26.8)
-- [ ] Public test subreddit (fewer than 200 members) with the app installed and at least two consecutive real days played
-- [ ] Demo video (under 60 s) recorded per `VIDEO_SHOTLIST.md`
+- [ ] Provide the test subreddit and a working post permalink. Use a public subreddit (fewer than 200 members) or verify judge access via Reddit's developer bot as described in the official rules.
+- [ ] Capture two consecutive days of play to demonstrate that day one's routes change day two's maze.
+- [ ] Optional demo video: record under 60 s per `VIDEO_SHOTLIST.md` and verify the public video link.
 - [ ] `README.md` in this folder present and accurate
 - [ ] `DEVPOST_STORY.md` copied into the Devpost write-up, brackets filled honestly, unshipped claims removed
 
