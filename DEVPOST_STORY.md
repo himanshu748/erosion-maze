@@ -9,4 +9,6 @@ The practice build uses the same deterministic generator and movement rules as t
 - [58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) shows the splash, solve at par, one-player erosion preview and restart. The video identifies the footage as local practice throughout.
 - [Local erosion screenshot](docs/local-erosion.png) shows the changed board after that run.
 - [Owner playtest instructions](README.md#owner-playtest) cover practice and scheduled daily checks after copy approval.
-- The draft still needs a test subreddit and a working interactive post permalink verified for judge access. See the [official requirements](https://redditgameofday2026.devpost.com/rules).
+- [Unsubmitted Devpost project](https://devpost.com/software/erosion-maze).
+
+For the judge-access package, record the uploaded Devvit app listing, the test subreddit, and the exact interactive maze post. Confirm the judge can open and play that post. The [official requirements](https://redditgameofday2026.devpost.com/rules) describe public test communities and the Devvit admin access option. The practice walkthrough remains local evidence.

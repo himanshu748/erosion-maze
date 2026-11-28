@@ -6,7 +6,7 @@ A grid maze for Reddit Interactive Posts. Today's finished solves change tomorro
 
 The draft includes the daily scheduler, ranked play and shared rollover. These have passed local tests. A Reddit playtest and player-facing copy approval are pending. The player-facing leaderboard and result comments are still in development.
 
-[58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) · [Screenshot of the local erosion preview](docs/local-erosion.png)
+[58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) · [Screenshot of the local erosion preview](docs/local-erosion.png) · [Devpost project awaiting submission](https://devpost.com/software/erosion-maze)
 
 ## How to play
 
