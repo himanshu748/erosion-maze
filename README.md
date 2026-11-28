@@ -4,7 +4,7 @@ A grid maze for Reddit Interactive Posts. The practice build lets you solve a ma
 
 **Status:** Local practice works. Player-facing copy is awaiting approval. The Reddit daily scheduler, ranked attempt endpoints, shared rollover, leaderboard and result comments are still in development.
 
-[Screenshot of the local erosion preview](docs/local-erosion.png)
+[58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) · [Screenshot of the local erosion preview](docs/local-erosion.png)
 
 ## How to play
 

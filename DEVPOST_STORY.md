@@ -6,6 +6,7 @@ The practice build runs in the Devvit Web client and uses the same deterministic
 
 ## Judge access
 
+- [58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) shows the splash, solve at par, one-player erosion preview and restart. The video identifies the footage as local practice throughout.
 - [Local erosion screenshot](docs/local-erosion.png) shows the changed board after that run.
 - [Owner playtest instructions](README.md#owner-playtest) cover creating the practice post from the moderator menu after copy approval.
 - The draft still needs a test subreddit and a working interactive post permalink verified for judge access. See the [official requirements](https://redditgameofday2026.devpost.com/rules).
