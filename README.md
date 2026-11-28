@@ -4,7 +4,7 @@ A grid maze for Reddit Interactive Posts. Today's finished solves change tomorro
 
 ## Status
 
-The draft includes the daily scheduler, ranked play and shared rollover. These have passed local tests. A Reddit playtest and player-facing copy approval are pending. The player-facing leaderboard and result comments are still in development.
+The playable build includes the daily scheduler, ranked play and shared rollover. These have passed local tests. The owner approved the player-facing copy in the reviewed build on November 28, 2026. A native Reddit playtest remains pending. The player-facing leaderboard and result comments are still in development.
 
 [58.5-second local walkthrough](https://youtu.be/PjQ8wTulXtw) · [Screenshot of the local erosion preview](docs/local-erosion.png) · [Devpost project awaiting submission](https://devpost.com/software/erosion-maze)
 
@@ -22,7 +22,7 @@ With local test data, the daily splash rendered earlier trails without a request
 
 ## Owner playtest
 
-Once the copy is approved, run these commands from the app. Use Node 24.18 or newer. Replace `your-test-subreddit` with the name of a private test subreddit you moderate, without `r/`.
+Use Node 24.18 or newer. From the app root, run these commands in your own terminal. Replace `your-test-subreddit` with the name of a private test subreddit you moderate, without `r/`.
 
 ```sh
 npm ci
