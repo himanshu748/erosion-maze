@@ -1,4 +1,5 @@
 import type { StateResponse, StateSuccess } from './api';
+import { encodeMoves } from './codec/moves';
 import { decodeMaze } from './codec/maze';
 import { PROGRESS_SYNC_MOVES } from './constants';
 import { parsePuzzleDay, type PuzzleDay } from './date';
@@ -67,4 +68,37 @@ export function restoreSignedOutDaily(postData: unknown, today: PuzzleDay): Dail
 export function shouldSaveProgress(saved: number, accepted: number): boolean {
   return (saved === 0 && accepted > 0) ||
     Math.floor(accepted / PROGRESS_SYNC_MOVES) > Math.floor(saved / PROGRESS_SYNC_MOVES);
+}
+
+export type RankedRequestKind = 'load' | 'progress' | 'finish';
+
+export function rankedSaveRequest(
+  run: DailyRun,
+  pending?: RankedRequestKind
+) {
+  if (
+    !run.puzzle.loggedIn ||
+    run.confirmed ||
+    run.puzzle.dayStatus !== 'live' ||
+    run.attempt.accepted.length <= run.savedMoves
+  ) return;
+
+  const kind = run.attempt.outcome === null ? 'progress' : 'finish';
+  // The finish contains the whole run. It can survive navigation even if a
+  // checkpoint is still in flight, and the server preserves the longer run.
+  if (pending && !(kind === 'finish' && pending === 'progress')) return;
+
+  return {
+    kind,
+    url: kind === 'finish' ? '/api/finish' : '/api/progress',
+    options: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        variant: run.puzzle.variant,
+        moves: encodeMoves(run.attempt.accepted),
+      }),
+      keepalive: true,
+    },
+  } as const;
 }
