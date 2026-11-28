@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { rankedSaveRequest } from '../client/ranked-save';
 import { isDailyPost, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress } from '../shared/daily-run';
 import type { StateSuccess } from '../shared/api';
 import { routeToMoves } from '../shared/canonical';
@@ -6,6 +7,7 @@ import { encodeHeatmap } from '../shared/codec/heatmap';
 import { encodeMaze } from '../shared/codec/maze';
 import { encodeMoves } from '../shared/codec/moves';
 import { GRID_SIDE } from '../shared/constants';
+import { applyMove } from '../shared/engine';
 import { serpentine } from '../shared/generator';
 import { solve } from '../shared/solver';
 import { day } from './maze-fixtures';
@@ -87,5 +89,30 @@ describe('ranked client state', () => {
     expect(shouldSaveProgress(1, 6)).toBe(true);
     expect(shouldSaveProgress(6, 10)).toBe(true);
     expect(shouldSaveProgress(10, 11)).toBe(false);
+  });
+  it('sends the unsent finish with keepalive while its first checkpoint is pending', () => {
+    const { state, moves } = fixture();
+    const start = restoreDailyRun(state);
+    if (!start || moves[0] === undefined) throw new Error('invalid fixture');
+
+    const checkpoint = { ...start, attempt: applyMove(start.attempt, moves[0]).state };
+    expect(rankedSaveRequest(checkpoint)?.url).toBe('/api/progress');
+    expect(rankedSaveRequest(checkpoint, 'progress')).toBeUndefined();
+
+    const attempt = moves.slice(1).reduce((run, move) => applyMove(run, move).state, checkpoint.attempt);
+    const finished = { ...checkpoint, attempt };
+    expect(attempt.outcome).toBe('solved');
+    expect(rankedSaveRequest(finished, 'progress')).toMatchObject({
+      kind: 'finish',
+      url: '/api/finish',
+      options: {
+        keepalive: true,
+        method: 'POST',
+        body: JSON.stringify({ variant: state.variant, moves: encodeMoves(moves) }),
+      },
+    });
+    expect(rankedSaveRequest(finished, 'finish')).toBeUndefined();
+    expect(rankedSaveRequest(finished, 'load')).toBeUndefined();
+    expect(rankedSaveRequest({ ...finished, confirmed: true })).toBeUndefined();
   });
 });

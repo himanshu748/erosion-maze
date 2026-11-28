@@ -3,7 +3,7 @@ import { StrictMode, useCallback, useEffect, useRef, useState, type KeyboardEven
 import { createRoot } from 'react-dom/client';
 import { isDailyPost, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress, type DailyRun } from '../shared/daily-run';
 import type { FinishResponse, ProgressResponse, StateResponse } from '../shared/api';
-import { encodeMoves } from '../shared/codec/moves';
+import { rankedSaveRequest, type RankedRequestKind } from './ranked-save';
 import { moveBudget } from '../shared/budget';
 import { addDays, mondayOf, puzzleDayFromMs, weekday, type PuzzleDay } from '../shared/date';
 import { applyMove, initAttempt, visitedSet, type AttemptState } from '../shared/engine';
@@ -160,7 +160,7 @@ function DailyGame() {
   const [run, setRun] = useState<DailyRun | null>(null);
   const [status, setStatus] = useState<DailyStatus>('loading');
   const current = useRef<DailyRun | null>(null);
-  const pending = useRef(false);
+  const pending = useRef<{ readonly kind: RankedRequestKind } | null>(null);
   const flushOnHide = useRef(false);
   const needsAttention = useRef(false);
   const copy = STRINGS.daily;
@@ -172,7 +172,7 @@ function DailyGame() {
 
   const load = useCallback(async (signal?: AbortSignal) => {
     if (pending.current) return;
-    pending.current = true;
+    pending.current = { kind: 'load' };
     setStatus('loading');
     const fromPost = () => restoreSignedOutDaily(context?.postData, puzzleDayFromMs(Date.now()));
     try {
@@ -202,7 +202,7 @@ function DailyGame() {
         }
       }
     } finally {
-      pending.current = false;
+      pending.current = null;
     }
   }, [replaceRun]);
 
@@ -215,32 +215,26 @@ function DailyGame() {
     return () => controller.abort();
   }, [load]);
 
-  const sync = useCallback(async (keepalive = false) => {
-    if (pending.current) {
-      if (keepalive) flushOnHide.current = true;
+  const sync = useCallback(async (onHide = false) => {
+    const initial = current.current;
+    if (!initial) return;
+    let request = rankedSaveRequest(initial, pending.current?.kind);
+    if (!request) {
+      if (onHide && pending.current?.kind === 'progress') flushOnHide.current = true;
       return;
     }
-    const initial = current.current;
-    if (!initial || !initial.puzzle.loggedIn || initial.confirmed ||
-        initial.puzzle.dayStatus !== 'live' || initial.attempt.accepted.length <= initial.savedMoves) return;
     let snapshot: DailyRun = initial;
-    pending.current = true;
+    const operation = { kind: request.kind };
+    pending.current = operation;
     setStatus('saving');
     try {
-      while (true) {
-        const finished = snapshot.attempt.outcome !== null;
-        const response = await fetch(finished ? '/api/finish' : '/api/progress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            variant: snapshot.puzzle.variant,
-            moves: encodeMoves(snapshot.attempt.accepted),
-          }),
-          keepalive: keepalive || flushOnHide.current,
-        });
+      while (request) {
+        const finished = request.kind === 'finish';
         flushOnHide.current = false;
+        const response = await fetch(request.url, request.options);
         if (!response.ok) throw new Error('Save request failed');
         const result = await response.json() as FinishResponse | ProgressResponse;
+        if (pending.current !== operation) return;
         if (result.status === 'error' || result.status === 'rate_limited') {
           throw new Error('Save is temporarily unavailable');
         }
@@ -260,15 +254,20 @@ function DailyGame() {
         if (accepted <= saved ||
             (snapshot.attempt.outcome === null && !flushOnHide.current &&
               !shouldSaveProgress(saved, accepted))) break;
+        request = rankedSaveRequest(snapshot);
       }
       needsAttention.current = false;
       setStatus('ready');
     } catch {
-      needsAttention.current = true;
-      setStatus('retry');
+      if (pending.current === operation) {
+        needsAttention.current = true;
+        setStatus('retry');
+      }
     } finally {
-      pending.current = false;
-      flushOnHide.current = false;
+      if (pending.current === operation) {
+        pending.current = null;
+        flushOnHide.current = false;
+      }
     }
   }, [replaceRun]);
 
