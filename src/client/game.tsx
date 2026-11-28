@@ -1,5 +1,9 @@
+import { context } from '@devvit/web/client';
 import { StrictMode, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
+import { isDailyPost, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress, type DailyRun } from '../shared/daily-run';
+import type { FinishResponse, ProgressResponse, StateResponse } from '../shared/api';
+import { encodeMoves } from '../shared/codec/moves';
 import { moveBudget } from '../shared/budget';
 import { addDays, mondayOf, puzzleDayFromMs, weekday, type PuzzleDay } from '../shared/date';
 import { applyMove, initAttempt, visitedSet, type AttemptState } from '../shared/engine';
@@ -52,22 +56,13 @@ function Board({ attempt }: { readonly attempt: AttemptState }) {
   );
 }
 
-export function App() {
-  const [practice] = useState(preparePractice);
-  const [attempt, setAttempt] = useState(practice?.initial ?? null);
-  const [preview, setPreview] = useState<RolloverPreview | null>(null);
+function useMazeKeyboard(playing: boolean, move: (direction: Move) => void) {
   const playArea = useRef<HTMLElement>(null);
-  const copy = STRINGS.practice;
-  const playing = attempt?.outcome === null;
 
   useEffect(() => {
     if (document.activeElement === document.body) {
       playArea.current?.focus({ preventScroll: true });
     }
-  }, []);
-
-  const move = useCallback((direction: Move) => {
-    setAttempt((previous) => previous && applyMove(previous, direction).state);
   }, []);
 
   const onKeyDown = useCallback((event: KeyboardEvent | ReactKeyboardEvent<HTMLElement>) => {
@@ -90,6 +85,19 @@ export function App() {
     document.addEventListener('keydown', onPageKeyDown);
     return () => document.removeEventListener('keydown', onPageKeyDown);
   }, [onKeyDown, playing]);
+
+  return { playArea, onKeyDown };
+}
+
+function PracticeGame() {
+  const [practice] = useState(preparePractice);
+  const [attempt, setAttempt] = useState(practice?.initial ?? null);
+  const [preview, setPreview] = useState<RolloverPreview | null>(null);
+  const copy = STRINGS.practice;
+  const move = useCallback((direction: Move) => {
+    setAttempt((previous) => previous && applyMove(previous, direction).state);
+  }, []);
+  const { playArea, onKeyDown } = useMazeKeyboard(attempt?.outcome === null, move);
 
   function showErosion() {
     if (!practice || attempt?.outcome !== 'solved' || preview) return;
@@ -144,6 +152,185 @@ export function App() {
       ) : <p>{STRINGS.comingSoon}</p>}
     </main>
   );
+}
+
+type DailyStatus = 'loading' | 'ready' | 'saving' | 'retry' | 'reload';
+
+function DailyGame() {
+  const [run, setRun] = useState<DailyRun | null>(null);
+  const [status, setStatus] = useState<DailyStatus>('loading');
+  const current = useRef<DailyRun | null>(null);
+  const pending = useRef(false);
+  const flushOnHide = useRef(false);
+  const needsAttention = useRef(false);
+  const copy = STRINGS.daily;
+
+  const replaceRun = useCallback((next: DailyRun | null) => {
+    current.current = next;
+    setRun(next);
+  }, []);
+
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (pending.current) return;
+    pending.current = true;
+    setStatus('loading');
+    const fromPost = () => restoreSignedOutDaily(context?.postData, puzzleDayFromMs(Date.now()));
+    try {
+      let restored: DailyRun | null;
+      if (context?.userId) {
+        const response = await fetch('/api/state?first=1', { signal: signal ?? null });
+        if (!response.ok) throw new Error('State request failed');
+        restored = restoreDailyRun(await response.json() as StateResponse);
+      } else {
+        restored = fromPost();
+      }
+      if (signal?.aborted) return;
+      if (!restored) throw new Error('State could not be restored');
+      replaceRun(restored);
+      needsAttention.current = false;
+      setStatus('ready');
+    } catch {
+      if (!signal?.aborted) {
+        const archived = fromPost();
+        if (archived && archived.puzzle.dayStatus !== 'live') {
+          replaceRun(archived);
+          needsAttention.current = false;
+          setStatus('ready');
+        } else {
+          needsAttention.current = true;
+          setStatus('reload');
+        }
+      }
+    } finally {
+      pending.current = false;
+    }
+  }, [replaceRun]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    // Let StrictMode discard its first test mount before sending a request.
+    void Promise.resolve().then(() => {
+      if (!controller.signal.aborted) void load(controller.signal);
+    });
+    return () => controller.abort();
+  }, [load]);
+
+  const sync = useCallback(async (keepalive = false) => {
+    if (pending.current) {
+      if (keepalive) flushOnHide.current = true;
+      return;
+    }
+    const initial = current.current;
+    if (!initial || !initial.puzzle.loggedIn || initial.confirmed ||
+        initial.puzzle.dayStatus !== 'live' || initial.attempt.accepted.length <= initial.savedMoves) return;
+    let snapshot: DailyRun = initial;
+    pending.current = true;
+    setStatus('saving');
+    try {
+      while (true) {
+        const finished = snapshot.attempt.outcome !== null;
+        const response = await fetch(finished ? '/api/finish' : '/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            variant: snapshot.puzzle.variant,
+            moves: encodeMoves(snapshot.attempt.accepted),
+          }),
+          keepalive: keepalive || flushOnHide.current,
+        });
+        flushOnHide.current = false;
+        if (!response.ok) throw new Error('Save request failed');
+        const result = await response.json() as FinishResponse | ProgressResponse;
+        if (result.status === 'error' || result.status === 'rate_limited') {
+          throw new Error('Save is temporarily unavailable');
+        }
+        if (result.status !== 'ok' ||
+            (finished && (!('result' in result) || result.result.cost !== snapshot.attempt.cost ||
+              result.result.outcome !== snapshot.attempt.outcome)) ||
+            (!finished && (!('finished' in result) || result.finished !== null))) {
+          needsAttention.current = true;
+          setStatus('reload');
+          return;
+        }
+        const latest = current.current ?? snapshot;
+        const saved = snapshot.attempt.accepted.length;
+        const accepted = latest.attempt.accepted.length;
+        snapshot = { ...latest, savedMoves: saved, confirmed: finished };
+        replaceRun(snapshot);
+        if (accepted <= saved ||
+            (snapshot.attempt.outcome === null && !flushOnHide.current &&
+              !shouldSaveProgress(saved, accepted))) break;
+      }
+      needsAttention.current = false;
+      setStatus('ready');
+    } catch {
+      needsAttention.current = true;
+      setStatus('retry');
+    } finally {
+      pending.current = false;
+      flushOnHide.current = false;
+    }
+  }, [replaceRun]);
+
+  useEffect(() => {
+    const saveOnHide = () => {
+      if (document.visibilityState === 'hidden' && !needsAttention.current) void sync(true);
+    };
+    document.addEventListener('visibilitychange', saveOnHide);
+    return () => document.removeEventListener('visibilitychange', saveOnHide);
+  }, [sync]);
+
+  const move = useCallback((direction: Move) => {
+    const previous = current.current;
+    if (!previous || needsAttention.current || previous.puzzle.dayStatus !== 'live') return;
+    const next = applyMove(previous.attempt, direction);
+    if (next.result !== 'accepted') return;
+    replaceRun({ ...previous, attempt: next.state });
+    if (next.state.outcome !== null || shouldSaveProgress(previous.savedMoves, next.state.accepted.length)) void sync();
+  }, [replaceRun, sync]);
+
+  const playing = Boolean(run && (status === 'ready' || status === 'saving') &&
+    run.puzzle.dayStatus === 'live' && run.attempt.outcome === null);
+  const { playArea, onKeyDown } = useMazeKeyboard(playing, move);
+
+  return (
+    <main ref={playArea} aria-label={STRINGS.gameName} tabIndex={0} onKeyDown={onKeyDown}>
+      <h1>{STRINGS.gameName}</h1>
+      {run && (
+        <>
+          <h2 className="practice-title">{copy.number(run.puzzle.dayNumber)}</h2>
+          <p className="instructions">{run.puzzle.dayStatus === 'closed' ? copy.closed :
+            run.puzzle.dayStatus === 'skipped' ? copy.skipped :
+              STRINGS.practice.directions}</p>
+          {run.puzzle.dayStatus === 'live' && !run.puzzle.loggedIn && <p>{copy.signedOut}</p>}
+          <Board attempt={run.attempt} />
+          <p className="move-cost">{STRINGS.practice.cost(run.attempt.cost, run.attempt.budget)}</p>
+          {run.attempt.outcome !== null && (run.confirmed || !run.puzzle.loggedIn) && (
+            <section className="result-card" aria-labelledby="daily-result">
+              <h3 id="daily-result">{run.attempt.outcome === 'solved' ? STRINGS.practice.solved : STRINGS.practice.exhausted}</h3>
+              <p>{STRINGS.practice.result(run.attempt.cost, run.puzzle.par)}</p>
+              {run.confirmed && <p>{copy.saved}</p>}
+            </section>
+          )}
+          <div className="controls">
+            {MOVES.map((direction) => (
+              <button type="button" key={direction} disabled={!playing} onClick={() => move(direction)}>
+                {STRINGS.practice.moves[direction]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <p role="status">{status === 'loading' ? copy.loading : status === 'saving' ? copy.saving :
+        status === 'retry' ? copy.saveError : status === 'reload' ? run ? copy.stale : copy.unavailable : null}</p>
+      {status === 'retry' && <button type="button" onClick={() => void sync()}>{copy.retry}</button>}
+      {status === 'reload' && <button type="button" onClick={() => void load()}>{run ? copy.refresh : copy.retry}</button>}
+    </main>
+  );
+}
+
+export function App() {
+  return isDailyPost(context?.postData) ? <DailyGame /> : <PracticeGame />;
 }
 
 const root = document.getElementById('root');

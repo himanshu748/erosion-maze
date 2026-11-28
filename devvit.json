@@ -20,6 +20,15 @@
       }
     ]
   },
+  "scheduler": {
+    "tasks": {
+      "daily": { "endpoint": "/internal/scheduler/daily", "cron": "1 0 * * *" },
+      "catchup": {
+        "endpoint": "/internal/scheduler/daily",
+        "cron": "17 * * * *"
+      }
+    }
+  },
   "permissions": {
     "http": { "enable": false },
     "redis": true,
