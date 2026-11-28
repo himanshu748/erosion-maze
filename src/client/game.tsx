@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { StrictMode, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { moveBudget } from '../shared/budget';
 import { addDays, mondayOf, puzzleDayFromMs, weekday, type PuzzleDay } from '../shared/date';
@@ -58,6 +58,7 @@ export function App() {
   const [preview, setPreview] = useState<RolloverPreview | null>(null);
   const playArea = useRef<HTMLElement>(null);
   const copy = STRINGS.practice;
+  const playing = attempt?.outcome === null;
 
   useEffect(() => {
     if (document.activeElement === document.body) {
@@ -65,9 +66,30 @@ export function App() {
     }
   }, []);
 
-  function move(direction: Move) {
+  const move = useCallback((direction: Move) => {
     setAttempt((previous) => previous && applyMove(previous, direction).state);
-  }
+  }, []);
+
+  const onKeyDown = useCallback((event: KeyboardEvent | ReactKeyboardEvent<HTMLElement>) => {
+    if (!playing || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (!Object.hasOwn(keyMove, event.key)) return;
+    const direction = keyMove[event.key];
+    if (direction === undefined) return;
+    event.preventDefault();
+    move(direction);
+  }, [move, playing]);
+
+  useEffect(() => {
+    if (!playing) return;
+    function onPageKeyDown(event: KeyboardEvent) {
+      const target = event.target;
+      if (target === document.body || target === document.documentElement || target === document) {
+        onKeyDown(event);
+      }
+    }
+    document.addEventListener('keydown', onPageKeyDown);
+    return () => document.removeEventListener('keydown', onPageKeyDown);
+  }, [onKeyDown, playing]);
 
   function showErosion() {
     if (!practice || attempt?.outcome !== 'solved' || preview) return;
@@ -87,14 +109,6 @@ export function App() {
   function reset() {
     setAttempt(practice?.initial ?? null);
     setPreview(null);
-  }
-
-  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (!Object.hasOwn(keyMove, event.key)) return;
-    const direction = keyMove[event.key];
-    if (direction === undefined || attempt?.outcome !== null) return;
-    event.preventDefault();
-    move(direction);
   }
 
   return (
