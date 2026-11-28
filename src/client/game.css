@@ -1,0 +1,51 @@
+@import './tokens.css';
+
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+main {
+  margin: 1rem auto;
+  max-width: 28rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+svg {
+  background: Canvas;
+  display: block;
+  margin: 0 auto;
+  max-width: 24rem;
+  overflow: visible;
+  width: 100%;
+}
+
+path, .start {
+  fill: none;
+  stroke: CanvasText;
+  stroke-width: 0.075;
+}
+
+.player { fill: Highlight; }
+.worn { fill: color-mix(in srgb, var(--practice-worn) 50%, Canvas); }
+.hedge { fill: color-mix(in srgb, var(--practice-hedge) 55%, Canvas); }
+.exit {
+  fill: none;
+  stroke: CanvasText;
+  stroke-width: 0.11;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.35rem 0.75rem;
+}
