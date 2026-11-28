@@ -9,6 +9,17 @@
     }
   },
   "server": { "dir": "dist/server", "entry": "index.cjs" },
+  "menu": {
+    "items": [
+      {
+        "label": "Open practice maze",
+        "description": "Create a post that opens the local-practice maze.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/practice"
+      }
+    ]
+  },
   "permissions": {
     "http": { "enable": false },
     "redis": true,

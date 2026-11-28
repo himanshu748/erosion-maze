@@ -15,10 +15,12 @@ export const STRINGS = {
     cost: (cost: number, budget: number) => `Cost: ${cost} of ${budget}`,
     solved: 'You reached the exit.',
     exhausted: 'You are out of moves.',
+    result: (cost: number, par: number) => `Your cost: ${cost}. Par: ${par}.`,
     nextBoard: 'See how this run changes the next maze',
     erosion: (worn: number, walls: number, hedges: number) =>
       `Next maze: ${worn} worn path cells, ${walls} walls removed, ${hedges} new hedges.`,
     reset: 'Restart practice',
+    postError: 'Could not open the practice post. Check the playtest logs.',
   },
   shareHeader: (
     dayNumber: number,

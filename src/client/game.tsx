@@ -1,4 +1,4 @@
-import { StrictMode, useState, type KeyboardEvent } from 'react';
+import { StrictMode, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
 import { moveBudget } from '../shared/budget';
 import { addDays, mondayOf, puzzleDayFromMs, weekday, type PuzzleDay } from '../shared/date';
@@ -16,14 +16,15 @@ const keyMove: Readonly<Record<string, Move>> = {
   ArrowLeft: LEFT,
 };
 
-type Practice = { readonly day: PuzzleDay; readonly initial: AttemptState };
+type Practice = { readonly day: PuzzleDay; readonly initial: AttemptState; readonly par: number };
+type RolloverPreview = { readonly changes: EvolveReport; readonly par: number };
 
 function preparePractice(): Practice | null {
   const day = mondayOf(puzzleDayFromMs(Date.now()));
   const generated = generateDetailed(day, 0);
   if (!generated.ok) return null;
   const { maze, par } = generated.value;
-  return { day, initial: initAttempt(maze, moveBudget(par, weekday(day))) };
+  return { day, initial: initAttempt(maze, moveBudget(par, weekday(day))), par };
 }
 
 function Board({ attempt }: { readonly attempt: AttemptState }) {
@@ -54,15 +55,22 @@ function Board({ attempt }: { readonly attempt: AttemptState }) {
 export function App() {
   const [practice] = useState(preparePractice);
   const [attempt, setAttempt] = useState(practice?.initial ?? null);
-  const [report, setReport] = useState<EvolveReport | null>(null);
+  const [preview, setPreview] = useState<RolloverPreview | null>(null);
+  const playArea = useRef<HTMLElement>(null);
   const copy = STRINGS.practice;
+
+  useEffect(() => {
+    if (document.activeElement === document.body) {
+      playArea.current?.focus({ preventScroll: true });
+    }
+  }, []);
 
   function move(direction: Move) {
     setAttempt((previous) => previous && applyMove(previous, direction).state);
   }
 
   function showErosion() {
-    if (!practice || attempt?.outcome !== 'solved' || report) return;
+    if (!practice || attempt?.outcome !== 'solved' || preview) return;
     const day = addDays(practice.day, 1);
     const snapshot = Array<number>(attempt.maze.states.length).fill(0);
     for (const cell of visitedSet(attempt.route)) snapshot[cell] = 1;
@@ -72,12 +80,13 @@ export function App() {
     const route = solve(maze);
     if (route.kind !== 'solved') return;
     setAttempt(initAttempt(maze, moveBudget(route.par, weekday(day))));
-    setReport(changes);
+    setPreview({ changes, par: route.par });
+    playArea.current?.focus({ preventScroll: true });
   }
 
   function reset() {
     setAttempt(practice?.initial ?? null);
-    setReport(null);
+    setPreview(null);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -89,19 +98,24 @@ export function App() {
   }
 
   return (
-    <main aria-label={copy.title} tabIndex={0} onKeyDown={onKeyDown}>
+    <main ref={playArea} aria-label={copy.title} tabIndex={0} onKeyDown={onKeyDown}>
       <h1>{STRINGS.gameName}</h1>
-      <h2>{copy.title}</h2>
+      <h2 className="practice-title">{copy.title}</h2>
       <p>{copy.note}</p>
-      {attempt ? (
+      {attempt && practice ? (
         <>
-          <p>{report ? copy.erosion(report.worn.length, report.wallsRemoved.length, report.newlyOvergrown.length) : copy.directions}</p>
-          <Board attempt={attempt} />
-          <p role="status">
-            {copy.cost(attempt.cost, attempt.budget)}
-            {attempt.outcome === 'solved' && ` · ${copy.solved}`}
-            {attempt.outcome === 'out-of-moves' && ` · ${copy.exhausted}`}
+          <p className="instructions">
+            {preview ? copy.erosion(preview.changes.worn.length, preview.changes.wallsRemoved.length, preview.changes.newlyOvergrown.length) : copy.directions}
           </p>
+          <Board attempt={attempt} />
+          <p className="move-cost" role="status">{copy.cost(attempt.cost, attempt.budget)}</p>
+          {attempt.outcome !== null && (
+            <section className="result-card" aria-labelledby="practice-result">
+              <h3 id="practice-result">{attempt.outcome === 'solved' ? copy.solved : copy.exhausted}</h3>
+              <p>{copy.result(attempt.cost, preview?.par ?? practice.par)}</p>
+              {attempt.outcome === 'solved' && !preview && <button className="primary" type="button" onClick={showErosion}>{copy.nextBoard}</button>}
+            </section>
+          )}
           <div className="controls">
             {MOVES.map((direction) => (
               <button key={direction} type="button" disabled={attempt.outcome !== null} onClick={() => move(direction)}>
@@ -110,7 +124,6 @@ export function App() {
             ))}
           </div>
           <div className="controls">
-            {attempt.outcome === 'solved' && !report && <button type="button" onClick={showErosion}>{copy.nextBoard}</button>}
             <button type="button" onClick={reset}>{copy.reset}</button>
           </div>
         </>

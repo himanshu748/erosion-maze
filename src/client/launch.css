@@ -1,0 +1,29 @@
+:root {
+  color-scheme: light dark;
+  background: Canvas;
+  color: CanvasText;
+  font-family: system-ui, sans-serif;
+}
+
+body { margin: 0; }
+
+main {
+  margin: 0 auto;
+  max-width: 30rem;
+  padding: 3rem 1.25rem;
+  text-align: center;
+}
+
+h1 { margin: 0 0 0.75rem; }
+p { margin: 0 0 1.25rem; }
+
+button {
+  min-height: 44px;
+  padding: 0.45rem 1.5rem;
+  border: 1px solid ButtonBorder;
+  border-radius: 0.55rem;
+  background: Highlight;
+  color: HighlightText;
+  font: inherit;
+  cursor: pointer;
+}
