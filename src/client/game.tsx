@@ -1,9 +1,8 @@
 import { context } from '@devvit/web/client';
 import { StrictMode, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import { isDailyPost, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress, type DailyRun } from '../shared/daily-run';
+import { isDailyPost, rankedSaveRequest, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress, type DailyRun, type RankedRequestKind } from '../shared/daily-run';
 import type { FinishResponse, ProgressResponse, StateResponse } from '../shared/api';
-import { rankedSaveRequest, type RankedRequestKind } from './ranked-save';
 import { moveBudget } from '../shared/budget';
 import { addDays, mondayOf, puzzleDayFromMs, weekday, type PuzzleDay } from '../shared/date';
 import { applyMove, initAttempt, visitedSet, type AttemptState } from '../shared/engine';

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rankedSaveRequest } from '../client/ranked-save';
-import { isDailyPost, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress } from '../shared/daily-run';
+import { isDailyPost, rankedSaveRequest, restoreDailyRun, restoreSignedOutDaily, shouldSaveProgress } from '../shared/daily-run';
 import type { StateSuccess } from '../shared/api';
 import { routeToMoves } from '../shared/canonical';
 import { encodeHeatmap } from '../shared/codec/heatmap';
