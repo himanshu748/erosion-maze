@@ -1,0 +1,73 @@
+@import './tokens.css';
+
+:root {
+  color-scheme: light dark;
+  background: Canvas;
+  color: CanvasText;
+  font-family: system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+main {
+  margin: 1rem auto;
+  max-width: 28rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+h1, h2, h3, p { margin-block: 0 0.6rem; }
+.practice-title { font-size: 1.25rem; }
+.instructions { min-height: 2.5rem; }
+.move-cost { margin-top: 0.8rem; font-weight: 700; }
+.result-card {
+  border: 1px solid ButtonBorder;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--practice-worn) 18%, Canvas);
+  padding: 0.75rem;
+}
+.result-card h3 { margin-bottom: 0.35rem; }
+.primary { background: Highlight; color: HighlightText; }
+
+svg {
+  background: Canvas;
+  display: block;
+  margin: 0 auto;
+  max-width: 24rem;
+  overflow: visible;
+  width: 100%;
+}
+
+path, .start {
+  fill: none;
+  stroke: CanvasText;
+  stroke-width: 0.075;
+}
+
+.player { fill: Highlight; }
+.worn { fill: color-mix(in srgb, var(--practice-worn) 50%, Canvas); }
+.hedge { fill: color-mix(in srgb, var(--practice-hedge) 55%, Canvas); }
+.exit {
+  fill: none;
+  stroke: CanvasText;
+  stroke-width: 0.11;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.55rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled { cursor: default; }

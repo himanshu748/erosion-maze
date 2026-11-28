@@ -1,0 +1,48 @@
+@import './tokens.css';
+
+:root {
+  color-scheme: light dark;
+  background: Canvas;
+  color: CanvasText;
+  font-family: system-ui, sans-serif;
+}
+
+body { margin: 0; }
+
+main {
+  margin: 0 auto;
+  max-width: 30rem;
+  padding: 3rem 1.25rem;
+  text-align: center;
+}
+
+h1 { margin: 0 0 0.75rem; }
+p { margin: 0 0 1.25rem; }
+
+.daily { padding: 1rem 0.75rem; }
+.daily h1 { font-size: 1.5rem; }
+.daily p { margin-bottom: 0.65rem; }
+.preview {
+  display: block;
+  width: min(10rem, 100%);
+  margin: 0 auto 0.85rem;
+  padding: 0.15rem;
+}
+.preview .walls { fill: none; stroke: currentColor; stroke-width: 0.09; }
+.preview .route { fill: none; stroke: Highlight; stroke-width: 0.15; }
+.preview .start { fill: Canvas; stroke: currentColor; stroke-width: 0.12; }
+.preview .exit { fill: currentColor; }
+.preview .heat { fill: var(--trail-heat); }
+.preview .hedge { fill: var(--practice-hedge); opacity: 0.55; }
+.preview .worn { fill: var(--practice-worn); opacity: 0.35; }
+
+button {
+  min-height: 44px;
+  padding: 0.45rem 1.5rem;
+  border: 1px solid ButtonBorder;
+  border-radius: 0.55rem;
+  background: Highlight;
+  color: HighlightText;
+  font: inherit;
+  cursor: pointer;
+}
